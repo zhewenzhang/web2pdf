@@ -3,7 +3,7 @@
  * and triggers the browser's print dialog.
  */
 export const printHtmlContent = (htmlContent: string, title: string = "Document") => {
-  // Remove any existing print iframe to prevent duplicate DOM clutter
+  // Remove any existing print iframe
   const existingIframe = document.getElementById('print-iframe');
   if (existingIframe) {
     document.body.removeChild(existingIframe);
@@ -12,15 +12,18 @@ export const printHtmlContent = (htmlContent: string, title: string = "Document"
   const iframe = document.createElement('iframe');
   iframe.id = 'print-iframe';
   
-  // Robust hiding technique that keeps the element "rendered" for browser print engines
-  // 0x0 size or display:none can sometimes block print calls in modern browsers
+  // Improved hiding technique:
+  // Using 'left: -10000px' sometimes causes browsers to treat the iframe as "inactive" and block print calls.
+  // Using opacity: 0 and fixed positioning is safer for ensuring the render engine processes it.
   iframe.style.position = 'fixed';
-  iframe.style.left = '-10000px';
-  iframe.style.top = '0px';
-  iframe.style.width = '210mm'; // A4 width hint
-  iframe.style.height = '297mm';
-  iframe.style.border = 'none';
+  iframe.style.top = '0';
+  iframe.style.left = '0';
+  iframe.style.width = '1px';
+  iframe.style.height = '1px';
+  iframe.style.opacity = '0.01';
+  iframe.style.pointerEvents = 'none';
   iframe.style.zIndex = '-1';
+  iframe.style.border = 'none';
   
   document.body.appendChild(iframe);
 
@@ -67,20 +70,20 @@ export const printHtmlContent = (htmlContent: string, title: string = "Document"
           ${htmlContent}
         </div>
         <script>
-          // Robust print triggering
           function attemptPrint() {
-            // Check if Tailwind is loaded (it attaches to window)
-            // or if a sufficient timeout has passed
             if (window.tailwind) {
-               // Give Tailwind a moment to parse and apply styles
+               // Small buffer to allow Tailwind to apply classes
                setTimeout(() => {
                  try {
-                   window.focus(); // Focus iframe window to ensure print dialog attaches correctly
+                   document.close();
+                   window.focus(); 
                    window.print();
+                   
+                   // Optional: clean up self after print dialog closes (though flaky across browsers)
                  } catch(e) {
                    console.error("Print error:", e);
                  }
-               }, 800);
+               }, 500);
             } else {
                // Retry if tailwind script hasn't run yet
                setTimeout(attemptPrint, 100);
@@ -137,13 +140,22 @@ export const openHtmlInNewTab = (htmlContent: string, title: string = "Document"
       <body>
         <div class="no-print" style="margin-bottom: 20px; padding: 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; text-align: center; font-family: sans-serif;">
             <p style="margin: 0 0 12px 0; color: #0369a1; font-weight: 500;">Ready to convert. Click the button below.</p>
-            <button onclick="window.print()" style="background: #0284c7; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                Print / Save as PDF
+            <div style="font-size: 14px; color: #64748b; margin-bottom: 12px;">Destination: Select <strong>"Save as PDF"</strong></div>
+            <button onclick="window.print()" style="background: #0284c7; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                🖨️ Print / Save as PDF
             </button>
         </div>
         <div class="prose max-w-none">
           ${htmlContent}
         </div>
+        <script>
+            // Auto-trigger print for convenience
+            window.onload = function() {
+                setTimeout(function() {
+                    window.print();
+                }, 800);
+            }
+        </script>
       </body>
     </html>
   `;

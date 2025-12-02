@@ -1,13 +1,20 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export interface OptimizationResult {
   title: string;
   htmlBody: string;
 }
 
 export const optimizeHtmlForPdf = async (htmlContent: string): Promise<OptimizationResult> => {
+  const apiKey = process.env.API_KEY;
+  
+  // Graceful handling for missing API Key to prevent app crashes
+  if (!apiKey) {
+    throw new Error("API Key is missing. Please add 'API_KEY' to your environment variables in your deployment settings (e.g., Vercel, Netlify).");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+
   try {
     const modelId = "gemini-2.5-flash"; // Excellent speed/cost ratio for large text processing
 
